@@ -1,36 +1,73 @@
 const ollama = require('ollama');
-
-// The module 'vscode' contains the VS Code extensibility API
-// Import the module and reference it with the alias vscode in your code below
 const vscode = require('vscode');
-
-// This method is called when your extension is activated
-// Your extension is activated the very first time the command is executed
 
 /**
  * @param {vscode.ExtensionContext} context
  */
 function activate(context) {
-
-	// Use the console to output diagnostic information (console.log) and errors (console.error)
-	// This line of code will only be executed once when your extension is activated
-	console.log('Congratulations, your extension "sherpa-ai-box" is now active!');
-
-	// The command has been defined in the package.json file
-	// Now provide the implementation of the command with  registerCommand
-	// The commandId parameter must match the command field in package.json
 	let disposable = vscode.commands.registerCommand('sherpa-ai-box.helloWorld', test);
-
 	context.subscriptions.push(disposable);
 }
 
+function getLineContent() {
+	const editor = vscode.window.activeTextEditor;
+	if (!editor) return null
+
+	const position = editor.selection.active;
+	const line = editor.document.lineAt(position.line);
+	return line.text;
+}
+
 async function test() {
+	const lineContent = getLineContent();
+	if (lineContent === null) return
+	if (lineContent.length <= 3) return
+
+	const systemPrompt = `You are an English grammar teacher. You check ONLY the grammar of the text coming from the user.
+You don't rewrite the text, you just correct the grammar.
+If it is correct reply with this JSON structure:
+
+{ "correct": true }
+
+If it is NOT correct, reply with this JSON structure:
+
+{
+  "correct": false,
+  "corrected": "{{corrected_text}}",
+  "explanation": "{{short_explanation}}"
+}`
+
 	const response = await ollama.default.chat({
 		model: 'llama3.1',
-		messages: [{ role: 'user', content: 'How much is 1+1?' }],
+		messages: [
+			{ role: 'system', content: systemPrompt },
+			{ role: 'user', content: lineContent }
+		],
 	})
-	console.log('----------------------')
-	console.log(response.message.content)
+
+	console.log('AI response: ', response.message.content)
+
+	let parsedResponse
+
+	try {
+		parsedResponse = JSON.parse(response.message.content);
+	} catch (error) {
+		console.error('The AI did not return a valid JSON response:', response.message.content);
+		vscode.window.showErrorMessage('The AI did not return a valid JSON response: ', response.message.content);
+	}
+
+	if (parsedResponse.correct || parsedResponse.corrected === lineContent) {
+		vscode.window.showInformationMessage('The text is correct!');
+		return
+	}
+
+	vscode.window.activeTextEditor.edit(editBuilder => {
+		const position = vscode.window.activeTextEditor.selection.active;
+		const line = vscode.window.activeTextEditor.document.lineAt(position.line);
+		const newPosition = new vscode.Position(position.line + 1, line.firstNonWhitespaceCharacterIndex);
+		editBuilder.insert(newPosition, `${parsedResponse.corrected}\n`);
+		vscode.window.showInformationMessage('Explanation: ' + parsedResponse.explanation);
+	});
 }
 
 // This method is called when your extension is deactivated
