@@ -28,7 +28,7 @@ function getContent() {
 	if (!editor) return null
 
 	return {
-		lineContent: getLineContent(editor),
+		lineText: getLineContent(editor),
 		textToCheck: getTextToCheck(editor)
 	}
 }
@@ -53,9 +53,9 @@ function getTextToCheck(editor) {
 }
 
 async function test() {
-	const { lineContent, textToCheck } = getContent();
-	if (lineContent === null) return
-	if (lineContent.length <= 3) return
+	const { lineText, textToCheck } = getContent();
+	if (lineText === null) return
+	if (lineText.length <= 3) return
 
 	const response = await ollama.default.chat({
 		model: 'llama3.1',
@@ -84,7 +84,7 @@ async function test() {
 	vscode.window.activeTextEditor.edit(editBuilder => {
 		const position = vscode.window.activeTextEditor.selection.active;
 		const nextLinePosition = new vscode.Position(position.line + 1, 0);
-		const newLine = lineContent.replace(textToCheck, parsedResponse.corrected);
+		const newLine = lineText.replace(textToCheck, parsedResponse.corrected);
 		editBuilder.insert(nextLinePosition, `${newLine}\n`);
 	});
 
@@ -97,25 +97,15 @@ async function test() {
 
 		// Replace the text with the corrected version
 		const editor = vscode.window.activeTextEditor;
-    if (editor) {
-      const document = editor.document;
-      const selection = editor.selection;
-      const line = document.lineAt(selection.active.line);
-      const lineText = line.text;
+		const currentPosition = editor.selection.active;
+		const activeLine = editor.document.lineAt(currentPosition.line);
 
-      const newText = lineText.replace(textToCheck, parsedResponse.corrected);
+		const newText = lineText.replace(textToCheck, parsedResponse.corrected);
 
-      editor.edit(editBuilder => {
-        const range = new vscode.Range(line.range.start, line.range.end);
-        editBuilder.replace(range, newText);
-      });
-    }
-
-		// vscode.window.activeTextEditor.edit(editBuilder => {
-		// 	const lineContent = editor.document.lineAt(position.line).text;
-		// 	const newLine = lineContent.replace(textToCheck, parsedResponse.explanation);
-		// 	editBuilder.replace(line.range, newLine);
-		// });
+		editor.edit(editBuilder => {
+			const range = new vscode.Range(activeLine.range.start, activeLine.range.end);
+			editBuilder.replace(range, newText);
+		});
 	}
 }
 
