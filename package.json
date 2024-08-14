@@ -14,8 +14,8 @@
   "contributes": {
     "commands": [
       {
-        "command": "sherpa-ai-box.helloWorld",
-        "title": "Hello World"
+        "command": "sherpa-ai-box.fixGrammar",
+        "title": "Fix Grammar"
       }
     ]
   },

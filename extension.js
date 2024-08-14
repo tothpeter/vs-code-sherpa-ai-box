@@ -1,11 +1,11 @@
 const vscode = require('vscode');
-const { checkGrammar } = require('./lib/check_grammar');
+const { fixGrammar } = require('./lib/fix_grammar');
 
 /**
  * @param {vscode.ExtensionContext} context
  */
 function activate(context) {
-	let disposable = vscode.commands.registerCommand('sherpa-ai-box.helloWorld', checkGrammar);
+	let disposable = vscode.commands.registerCommand('sherpa-ai-box.fixGrammar', fixGrammar);
 	context.subscriptions.push(disposable);
 }
 
