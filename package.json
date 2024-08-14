@@ -3,6 +3,10 @@
   "displayName": "Sherpa AI box",
   "description": "",
   "version": "0.0.1",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/tothpeter/vs-code-sherpa-ai-box"
+  },
   "engines": {
     "vscode": "^1.92.0"
   },
@@ -21,6 +25,7 @@
   },
   "scripts": {
     "lint": "eslint .",
+    "package": "vsce package",
     "pretest": "npm run lint",
     "test": "vscode-test"
   },
@@ -31,7 +36,8 @@
     "@vscode/test-cli": "^0.0.9",
     "@vscode/test-electron": "^2.3.9",
     "eslint": "^8.57.0",
-    "typescript": "^5.4.5"
+    "typescript": "^5.4.5",
+    "vsce": "^2.15.0"
   },
   "dependencies": {
     "ollama": "^0.5.8"
