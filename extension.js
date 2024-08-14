@@ -1,5 +1,4 @@
-// const ollama = require('ollama');
-const ollama = require('ollama/browser');
+const ollama = require('ollama');
 
 // The module 'vscode' contains the VS Code extensibility API
 // Import the module and reference it with the alias vscode in your code below
@@ -32,8 +31,6 @@ async function test() {
 	})
 	console.log('----------------------')
 	console.log(response.message.content)
-
-	// vscode.window.showInformationMessage('Hello World from Sherpa AI box!');
 }
 
 // This method is called when your extension is deactivated
