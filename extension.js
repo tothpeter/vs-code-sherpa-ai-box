@@ -1,29 +1,7 @@
 const ollama = require('ollama');
 const vscode = require('vscode');
 
-/**
- * @param {vscode.ExtensionContext} context
- */
-function activate(context) {
-	let disposable = vscode.commands.registerCommand('sherpa-ai-box.helloWorld', test);
-	context.subscriptions.push(disposable);
-}
-
-function getLineContent() {
-	const editor = vscode.window.activeTextEditor;
-	if (!editor) return null
-
-	const position = editor.selection.active;
-	const line = editor.document.lineAt(position.line);
-	return line.text;
-}
-
-async function test() {
-	const lineContent = getLineContent();
-	if (lineContent === null) return
-	if (lineContent.length <= 3) return
-
-	const systemPrompt = `You are an English grammar teacher. You check ONLY the grammar of the text coming from the user.
+const systemPrompt = `You are an English grammar teacher. You check ONLY the grammar of the text coming from the user.
 You don't rewrite the text, you just correct the grammar.
 If it is correct reply with this JSON structure:
 
@@ -37,11 +15,53 @@ If it is NOT correct, reply with this JSON structure:
   "explanation": "{{short_explanation}}"
 }`
 
+/**
+ * @param {vscode.ExtensionContext} context
+ */
+function activate(context) {
+	let disposable = vscode.commands.registerCommand('sherpa-ai-box.helloWorld', test);
+	context.subscriptions.push(disposable);
+}
+
+function getContent() {
+	const editor = vscode.window.activeTextEditor;
+	if (!editor) return null
+
+	return {
+		lineContent: getLineContent(editor),
+		textToCheck: getTextToCheck(editor)
+	}
+}
+
+function getLineContent(editor) {
+	const position = editor.selection.active;
+	const line = editor.document.lineAt(position.line);
+	return line.text;
+}
+
+function getTextToCheck(editor) {
+	// Is there a selection?
+	const selection = editor.selection;
+	if (!selection.isEmpty) {
+		return editor.document.getText(selection);
+	}
+
+	// Return a trimmed version of the whole line
+	const position = editor.selection.active;
+	const line = editor.document.lineAt(position.line);
+	return line.text.trim();
+}
+
+async function test() {
+	const { lineContent, textToCheck } = getContent();
+	if (lineContent === null) return
+	if (lineContent.length <= 3) return
+
 	const response = await ollama.default.chat({
 		model: 'llama3.1',
 		messages: [
 			{ role: 'system', content: systemPrompt },
-			{ role: 'user', content: lineContent }
+			{ role: 'user', content: textToCheck }
 		],
 	})
 
@@ -56,16 +76,18 @@ If it is NOT correct, reply with this JSON structure:
 		vscode.window.showErrorMessage('The AI did not return a valid JSON response: ', response.message.content);
 	}
 
-	if (parsedResponse.correct || parsedResponse.corrected === lineContent) {
+	if (parsedResponse.correct || parsedResponse.corrected === textToCheck) {
 		vscode.window.showInformationMessage('The text is correct!');
 		return
 	}
 
+	const newLine = lineContent.replace(textToCheck, parsedResponse.corrected);
+
 	vscode.window.activeTextEditor.edit(editBuilder => {
 		const position = vscode.window.activeTextEditor.selection.active;
 		const line = vscode.window.activeTextEditor.document.lineAt(position.line);
-		const newPosition = new vscode.Position(position.line + 1, line.firstNonWhitespaceCharacterIndex);
-		editBuilder.insert(newPosition, `${parsedResponse.corrected}\n`);
+		const newPosition = new vscode.Position(position.line + 1, 0);
+		editBuilder.insert(newPosition, `${newLine}\n`);
 		vscode.window.showInformationMessage('Explanation: ' + parsedResponse.explanation);
 	});
 }
