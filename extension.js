@@ -81,18 +81,16 @@ async function test() {
 		return
 	}
 
-	const newLine = lineContent.replace(textToCheck, parsedResponse.corrected);
-
 	vscode.window.activeTextEditor.edit(editBuilder => {
 		const position = vscode.window.activeTextEditor.selection.active;
-		const line = vscode.window.activeTextEditor.document.lineAt(position.line);
-		const newPosition = new vscode.Position(position.line + 1, 0);
-		editBuilder.insert(newPosition, `${newLine}\n`);
-		vscode.window.showInformationMessage('Explanation: ' + parsedResponse.explanation);
+		const nextLinePosition = new vscode.Position(position.line + 1, 0);
+		const newLine = lineContent.replace(textToCheck, parsedResponse.corrected);
+		editBuilder.insert(nextLinePosition, `${newLine}\n`);
 	});
+
+	vscode.window.showInformationMessage('Explanation: ' + parsedResponse.explanation);
 }
 
-// This method is called when your extension is deactivated
 function deactivate() {}
 
 module.exports = {
