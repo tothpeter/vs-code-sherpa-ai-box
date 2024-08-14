@@ -89,6 +89,46 @@ async function test() {
 	});
 
 	vscode.window.showInformationMessage('Explanation: ' + parsedResponse.explanation);
+
+	// Offer the user in a menu to replace the text with the corrected version
+	if (await askIfWeShouldReplaceIt()) {
+		// Remove the suggestion
+		await vscode.commands.executeCommand('undo');
+
+		// Replace the text with the corrected version
+		const editor = vscode.window.activeTextEditor;
+    if (editor) {
+      const document = editor.document;
+      const selection = editor.selection;
+      const line = document.lineAt(selection.active.line);
+      const lineText = line.text;
+
+      const newText = lineText.replace(textToCheck, parsedResponse.corrected);
+
+      editor.edit(editBuilder => {
+        const range = new vscode.Range(line.range.start, line.range.end);
+        editBuilder.replace(range, newText);
+      });
+    }
+
+		// vscode.window.activeTextEditor.edit(editBuilder => {
+		// 	const lineContent = editor.document.lineAt(position.line).text;
+		// 	const newLine = lineContent.replace(textToCheck, parsedResponse.explanation);
+		// 	editBuilder.replace(line.range, newLine);
+		// });
+	}
+}
+
+async function askIfWeShouldReplaceIt() {
+	const question = 'Do you want to proceed?';
+	const options = ['Yes', 'No'];
+
+	const result = await vscode.window.showQuickPick(options, {
+		placeHolder: question,
+		canPickMany: false
+	});
+
+	return result === 'Yes'
 }
 
 function deactivate() {}
